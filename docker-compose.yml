@@ -1,0 +1,20 @@
+# One shared sequence-alignment service for any number of InterMines. See
+# README.md.
+#
+#   docker-compose up -d --build
+#
+# The service is reached through each mine's own nginx as
+# https://<mine host>/align-sequence (see docker-compose.override.yml.example),
+# so no public port is needed. The host port below is bound to localhost only,
+# for checking the container from the server itself.
+version: "3.4"
+
+services:
+  aligner:
+    container_name: aligner
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - 127.0.0.1:${ALIGNER_HTTP_PORT:-13000}:3000

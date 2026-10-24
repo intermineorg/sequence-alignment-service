@@ -1,0 +1,29 @@
+{
+  "name": "sequence-alignment-service",
+  "version": "1.0.0",
+  "description": "Small sequence alignment service to be used in combination with the Multiple Sequence Alignment viewer",
+  "main": "index.js",
+  "dependencies": {
+    "body-parser": "^1.19.0",
+    "clustal-omega-wrapper": "^1.0.0",
+    "cors": "^2.8.5",
+    "express": "^4.17.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "postinstall": "node ./node_modules/clustal-omega-wrapper/util/downloader.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akshatbhargava123/sequence-alignment-service.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/akshatbhargava123/sequence-alignment-service/issues"
+  },
+  "homepage": "https://github.com/akshatbhargava123/sequence-alignment-service#readme"
+}

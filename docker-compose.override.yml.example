@@ -1,0 +1,26 @@
+# Template for docker-compose.override.yml (compose loads that file
+# automatically; this .example is ignored).  It joins the aligner container to
+# each mine's frontend network so the mine's nginx can reach it as
+# http://aligner:3000 and serve it as https://<mine host>/align-sequence
+# without opening any port.  See README.md.
+#
+# The two entries below are HumanMine and FlyMine; replace them with your own
+# mines.  Each mine appears twice: under services.aligner.networks and under
+# the top-level networks: block as external.  For a mine deployed from
+# intermineorg/docker_template the network is <directory name>_frontend;
+# list the candidates with:  docker network ls --filter name=frontend
+# A name that does not exist stops the container from starting.
+version: "3.4"
+
+services:
+  aligner:
+    networks:
+      - default
+      - humanmine_frontend
+      - flymine_frontend
+
+networks:
+  humanmine_frontend:
+    external: true
+  flymine_frontend:
+    external: true
