@@ -94,40 +94,53 @@ that same-origin path. Three steps per mine.
    curl -s -X POST -H 'Content-Type: application/json' -d '{"sequence":">a\nMKTAYIAKQR\n>b\nMKTAYIAKQRQISFVK"}' https://www.humanmine.org/align-sequence
    ```
 
-3. **Patch the installed tool.** Two edits to the tool's built bundle, in
+3. **Patch the installed tool.** Three edits to the tool's built bundle, in
    the mine's tools directory (mounted at `./data/tools` in
-   `docker_template`). The first replaces the hard-coded server address with
-   the empty string, so the tool calls `/align-sequence` on the page's own
-   origin. The second fixes a bug in the bundled `msa` library that breaks
-   it in every browser released since 2021: its check `!t instanceof Array
-   || "at" in t` was meant to detect a Backbone collection, but
-   `Array.prototype.at` now exists, so plain arrays take the collection
-   branch and the viewer dies with `TypeError: t.on is not a function`.
+   `docker_template`):
+
+   - the hard-coded server address becomes the empty string, so the tool
+     calls `/align-sequence` on the page's own origin;
+   - the bundled `msa` library's test `!t instanceof Array || "at" in t`
+     was meant to detect a Backbone collection, but `Array.prototype.at`
+     exists in every browser since 2021, so plain arrays take the
+     collection branch and the viewer dies with
+     `TypeError: t.on is not a function`;
+   - the same library handles horizontal scrolling with the legacy
+     `mousewheel` / `DOMMouseScroll` events. Chrome and Safari no longer
+     fire them, so a trackpad swipe scrolls the page natively and the
+     alignment moves. Firefox still fires `DOMMouseScroll`; the handler
+     reads a zero delta from it and cancels the event, so in Firefox a
+     swipe does nothing. Dropping the handler gives Firefox the same native
+     scrolling; mouse dragging on the alignment is handled separately and
+     keeps working everywhere.
 
    ```sh
    cd ~/intermine/docker/humanmine
    for f in $(grep -rl 'https://sequencealignment.apps.intermine.org' data/tools/); do
        cp "$f" "$f.bak-aligner"
-       sed -i -e 's#"https://sequencealignment.apps.intermine.org"#""#' \
-              -e 's#!t instanceof Array||"at"in t#!(t instanceof Array)#' "$f"
+       sed -i 's#"https://sequencealignment.apps.intermine.org"#""#' "$f"
        echo "patched $f"
    done
-   grep -c '!(t instanceof Array)' data/tools/@intermine/bluegenes-msa-viewer/dist/bundle.js   # 1
+   b=data/tools/@intermine/bluegenes-msa-viewer/dist/bundle.js
+   sed -i -e 's#!t instanceof Array||"at"in t#!(t instanceof Array)#' \
+          -e 's#t.mousewheel="_onmousewheel",t.DOMMouseScroll="_onmousewheel",##' "$b"
+   grep -c '!(t instanceof Array)' "$b"      # 1
+   grep -c '_onmousewheel"' "$b"             # 0
    ```
 
-   The first expression matches `dist/bundle.js` (what browsers load) and
-   the tool's shipped source file `src/sequence-align-service.js`, which is
-   never served but is patched too so the two agree; the second matches
-   only the bundle. No restart is needed. Browsers may hold the old bundle
-   in cache: reload with cache bypass (Ctrl+Shift+R, or close every private
-   window and open a new one), then view a gene with several proteins
-   (HumanMine PAX6, `/humanmine/report/Gene/1234788`, has five). If two
-   mines share one tools directory through a symlink, patch it once.
+   The loop matches `dist/bundle.js` (what browsers load) and the tool's
+   shipped source file `src/sequence-align-service.js`, which is never
+   served but is patched too so the two agree; the other two edits apply
+   to the bundle only. No restart is needed. Browsers may hold the old
+   bundle in cache: close every private window and open a new one (or
+   reload with Ctrl+Shift+R / Cmd+Shift+R), then view a gene with several
+   proteins (HumanMine PAX6, `/humanmine/report/Gene/1234788`, has five).
+   If two mines share one tools directory through a symlink, patch it once.
 
    Reinstalling or updating the tool from the BlueGenes admin page restores
    the original bundle, so keep a note of these edits. The upstream fixes
    are for the tool to read the address from its `config.json` and to
-   update its `msa` dependency; see
+   update or patch its `msa` dependency; see
    [the tool's repository](https://github.com/intermine/bluegenes-msa-viewer).
 
 ## Undoing
